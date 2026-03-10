@@ -7,7 +7,7 @@ class ItemCardGenerator:
     def __init__(self, root):
         self.root = root
         self.root.title("D&D Gegenstandszettel Generator")
-        self.root.geometry("680x820") # Höhe leicht angepasst für das neue Dropdown
+        self.root.geometry("680x850") # Höhe für das neue AC-Feld angepasst
         self.root.configure(padx=20, pady=20)
 
         self.image_path = None
@@ -49,6 +49,7 @@ class ItemCardGenerator:
         self.show_gp = tk.BooleanVar(value=True)
         self.show_range = tk.BooleanVar(value=False)
         self.show_hit = tk.BooleanVar(value=True)
+        self.show_ac = tk.BooleanVar(value=False) # AC standardmäßig aus (da es primär eine Waffe ist)
         self.show_atm = tk.BooleanVar(value=True)
         self.show_dmg = tk.BooleanVar(value=True)
 
@@ -72,20 +73,26 @@ class ItemCardGenerator:
         self.entry_hit.grid(row=4, column=1, sticky="w")
         self.entry_hit.insert(0, "+1")
 
+        # AC (Armor Class) - NEU
+        tk.Checkbutton(right_frame, text="AC", variable=self.show_ac).grid(row=5, column=0, sticky="w")
+        self.entry_ac = tk.Entry(right_frame, font=("Arial", 10), width=12)
+        self.entry_ac.grid(row=5, column=1, sticky="w")
+        self.entry_ac.insert(0, "18")
+
         # ATM (Attunement)
-        tk.Checkbutton(right_frame, text="ATM", variable=self.show_atm).grid(row=5, column=0, sticky="w")
+        tk.Checkbutton(right_frame, text="ATM", variable=self.show_atm).grid(row=6, column=0, sticky="w")
         self.val_atm = tk.StringVar(value="JA")
         atm_dropdown = ttk.Combobox(right_frame, textvariable=self.val_atm, values=["JA", "NEIN"], width=9, state="readonly")
-        atm_dropdown.grid(row=5, column=1, sticky="w")
+        atm_dropdown.grid(row=6, column=1, sticky="w")
 
         # Damage (Breites Feld)
-        tk.Checkbutton(right_frame, text="Dmg", variable=self.show_dmg).grid(row=6, column=0, sticky="w", pady=(10,0))
+        tk.Checkbutton(right_frame, text="Dmg", variable=self.show_dmg).grid(row=7, column=0, sticky="w", pady=(10,0))
         self.entry_dmg = tk.Entry(right_frame, font=("Arial", 10), width=18)
-        self.entry_dmg.grid(row=6, column=1, sticky="w", pady=(10,0))
+        self.entry_dmg.grid(row=7, column=1, sticky="w", pady=(10,0))
         self.entry_dmg.insert(0, "1d12+1 + 1W4")
 
         # Schadenstyp (Dropdown)
-        tk.Label(right_frame, text="Dmg Typ:", font=("Arial", 9)).grid(row=7, column=0, sticky="w")
+        tk.Label(right_frame, text="Dmg Typ:", font=("Arial", 9)).grid(row=8, column=0, sticky="w")
         self.val_dmg_type = tk.StringVar(value="Hiebschaden")
         dmg_classes = [
             "Hiebschaden", "Stichschaden", "Wuchtschaden", 
@@ -93,8 +100,7 @@ class ItemCardGenerator:
             "Säureschaden", "Giftschaden", "Nekrotisch", 
             "Gleißend", "Psychisch", "Energie", "Donner"
         ]
-        ttk.Combobox(right_frame, textvariable=self.val_dmg_type, values=dmg_classes, width=15, state="readonly").grid(row=7, column=1, sticky="w", pady=(2,0))
-
+        ttk.Combobox(right_frame, textvariable=self.val_dmg_type, values=dmg_classes, width=15, state="readonly").grid(row=8, column=1, sticky="w", pady=(2,0))
 
         # 3. Textbereich (Unten)
         tk.Label(self.root, text="Beschreibung & Effekte:", font=("Arial", 10, "bold")).grid(row=3, column=0, sticky="w")
@@ -124,7 +130,7 @@ class ItemCardGenerator:
 
     def generate_card(self):
         card_width = 400
-        card_height = 600
+        card_height = 650 # Karte etwas verlängert, damit alle Boxen Platz haben
         img = Image.new('RGB', (card_width, card_height), color='white')
         draw = ImageDraw.Draw(img)
 
@@ -139,7 +145,7 @@ class ItemCardGenerator:
 
         # Rahmen & Trennlinie
         draw.rectangle([10, 10, card_width-10, card_height-10], outline="black", width=2)
-        draw.line([10, 320, card_width-10, 320], fill="black", width=2) 
+        draw.line([10, 350, card_width-10, 350], fill="black", width=2) # Trennlinie nach unten gerückt
 
         # Titel
         title_bg = [20, 20, card_width-20, 50]
@@ -173,6 +179,7 @@ class ItemCardGenerator:
         if self.show_gp.get(): active_std_stats.append((self.entry_gp.get(), "GP"))
         if self.show_range.get(): active_std_stats.append((self.entry_range.get(), "RNG"))
         if self.show_hit.get(): active_std_stats.append((self.entry_hit.get(), "HIT"))
+        if self.show_ac.get(): active_std_stats.append((self.entry_ac.get(), "AC")) # NEU: AC hinzugefügt
         if self.show_atm.get(): active_std_stats.append((self.val_atm.get(), "ATM"))
 
         box_width = 80
@@ -190,11 +197,11 @@ class ItemCardGenerator:
             
             draw.rectangle([gx, gy, gx + box_width, gy + box_height], outline="black", width=2)
             
-            # NEU: Label links, Wert rechts daneben
+            # Label links, Wert rechts daneben
             draw.text((gx + 5, gy + 14), label, font=font_small, fill="dimgray")
             draw.text((gx + 35, gy + 12), val, font=font_box_val, fill="black")
 
-        # 3. Zeichnen der breiten DMG Box (immer unter den kleinen Boxen)
+        # 3. Zeichnen der breiten DMG Box
         if self.show_dmg.get():
             num_std = len(active_std_stats)
             dmg_row = 0 if num_std == 0 else ((num_std - 1) // 2 + 1)
@@ -205,17 +212,17 @@ class ItemCardGenerator:
             
             draw.rectangle([gx, gy, gx + dmg_width, gy + box_height], outline="black", width=2)
             
-            # NEU: DMG Label links, Wert rechts daneben
+            # DMG Label links, Wert rechts daneben
             draw.text((gx + 5, gy + 14), "DMG", font=font_small, fill="dimgray")
             draw.text((gx + 40, gy + 12), self.entry_dmg.get(), font=font_box_val, fill="black")
 
-            # NEU: Schadenstyp unter der DMG Box
+            # Schadenstyp unter der DMG Box
             dmg_type_text = f"Schadenstyp: {self.val_dmg_type.get()}"
             draw.text((gx + 5, gy + box_height + 4), dmg_type_text, font=font_small, fill="dimgray")
 
         # Beschreibungstext
         raw_text = self.text_desc.get("1.0", tk.END)
-        y_text = 335 
+        y_text = 365 # Startpunkt für Text nach unten gerückt
         
         paragraphs = raw_text.split('\n')
         for para in paragraphs:
